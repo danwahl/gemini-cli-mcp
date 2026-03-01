@@ -266,5 +266,14 @@ server.registerTool(
   }
 );
 
-const transport = new StdioServerTransport();
-await server.connect(transport);
+// Only connect when run directly (not imported by tests)
+const isMain =
+  process.argv[1] !== undefined &&
+  (import.meta.url === `file://${process.argv[1]}` ||
+    process.argv[1].endsWith("cli.js") ||
+    process.argv[1].endsWith("dist/index.js"));
+
+if (isMain) {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+}

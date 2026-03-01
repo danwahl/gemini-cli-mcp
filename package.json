@@ -5,16 +5,21 @@
   "bin": "./cli.js",
   "scripts": {
     "build": "tsdown src/index.ts",
-    "test": "node --test src/index.test.ts",
+    "test": "node --import tsx/esm --test src/index.test.ts",
     "prepublishOnly": "npm run build"
   },
-  "files": ["dist", "cli.js"],
+  "files": [
+    "dist",
+    "cli.js"
+  ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.21.0",
     "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@types/node": "^25.3.3",
     "tsdown": "^0.10.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.8.0"
   }
 }

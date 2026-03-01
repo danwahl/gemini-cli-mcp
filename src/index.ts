@@ -1,7 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
+import { createRequire } from "node:module";
 import { z } from "zod";
+
+const { version } = createRequire(import.meta.url)("../package.json") as { version: string };
 
 export function buildGeminiArgs(
   prompt: string,
@@ -200,7 +203,7 @@ export function runGemini(
 
 const server = new McpServer({
   name: "gemini-cli-mcp",
-  version: "0.1.0",
+  version,
 });
 
 server.registerTool(
@@ -254,6 +257,7 @@ server.registerTool(
       return {
         isError: true,
         content: [{ type: "text", text: result.errorMessage ?? "Unknown error" }],
+        structuredContent: { sessionId: null, response: "", models: {}, tools: {} } as unknown as Record<string, unknown>,
       };
     }
 

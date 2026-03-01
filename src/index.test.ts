@@ -73,19 +73,22 @@ describe("buildGeminiArgs", () => {
 
 describe("parseGeminiOutput", () => {
   it("parses valid JSON response", () => {
-    const result = parseGeminiOutput(
-      JSON.stringify({ response: "Hello, world!" })
-    );
+    const result = parseGeminiOutput(JSON.stringify({ response: "Hello, world!" }));
     assert.equal(result.response, "Hello, world!");
+    assert.equal(result.sessionId, null);
     assert.equal(result.stats, undefined);
   });
 
-  it("extracts response and stats fields", () => {
-    const stats = { models: { "gemini-2.5-pro": { totalTokenCount: 42 } } };
+  it("extracts session_id", () => {
     const result = parseGeminiOutput(
-      JSON.stringify({ response: "Answer", stats })
+      JSON.stringify({ session_id: "abc-123", response: "ok" })
     );
-    assert.equal(result.response, "Answer");
+    assert.equal(result.sessionId, "abc-123");
+  });
+
+  it("extracts stats field", () => {
+    const stats = { models: {}, tools: {} };
+    const result = parseGeminiOutput(JSON.stringify({ response: "ok", stats }));
     assert.deepEqual(result.stats, stats);
   });
 
@@ -98,7 +101,7 @@ describe("parseGeminiOutput", () => {
     const raw = "this is not json";
     const result = parseGeminiOutput(raw);
     assert.equal(result.response, raw);
-    assert.equal(result.stats, undefined);
+    assert.equal(result.sessionId, null);
   });
 
   it("returns raw stdout for JSON without response field", () => {
@@ -121,57 +124,71 @@ describe("parseGeminiOutput", () => {
 });
 
 describe("extractStructuredOutput", () => {
-  it("returns response text", () => {
-    const output: GeminiOutput = { response: "hello" };
-    assert.equal(extractStructuredOutput(output).response, "hello");
+  it("passes through sessionId and response", () => {
+    const output: GeminiOutput = { sessionId: "abc", response: "hello" };
+    const result = extractStructuredOutput(output);
+    assert.equal(result.sessionId, "abc");
+    assert.equal(result.response, "hello");
   });
 
-  it("returns empty models array when no stats", () => {
-    const output: GeminiOutput = { response: "hi" };
-    assert.deepEqual(extractStructuredOutput(output).models, []);
+  it("returns empty records when no stats", () => {
+    const output: GeminiOutput = { sessionId: null, response: "hi" };
+    const result = extractStructuredOutput(output);
+    assert.deepEqual(result.models, {});
+    assert.deepEqual(result.tools, {});
   });
 
-  it("returns null totalTokens when no stats", () => {
-    const output: GeminiOutput = { response: "hi" };
-    assert.equal(extractStructuredOutput(output).totalTokens, null);
-  });
-
-  it("extracts model names from stats", () => {
+  it("extracts model token totals", () => {
     const output: GeminiOutput = {
-      response: "hi",
-      stats: { models: { "gemini-2.5-pro": {} } },
-    };
-    assert.deepEqual(extractStructuredOutput(output).models, ["gemini-2.5-pro"]);
-  });
-
-  it("sums totalTokenCount across models", () => {
-    const output: GeminiOutput = {
+      sessionId: null,
       response: "hi",
       stats: {
         models: {
-          "gemini-2.5-pro": { totalTokenCount: 100 },
-          "gemini-2.0-flash": { totalTokenCount: 50 },
+          "gemini-2.5-pro": { tokens: { total: 100 } },
+          "gemini-2.0-flash": { tokens: { total: 50 } },
         },
       },
     };
-    assert.equal(extractStructuredOutput(output).totalTokens, 150);
+    assert.deepEqual(extractStructuredOutput(output).models, {
+      "gemini-2.5-pro": 100,
+      "gemini-2.0-flash": 50,
+    });
   });
 
-  it("returns null totalTokens when models have no token counts", () => {
+  it("omits models with no token data", () => {
     const output: GeminiOutput = {
+      sessionId: null,
       response: "hi",
       stats: { models: { "gemini-2.5-pro": {} } },
     };
-    assert.equal(extractStructuredOutput(output).totalTokens, null);
+    assert.deepEqual(extractStructuredOutput(output).models, {});
   });
 
-  it("handles empty stats.models object", () => {
+  it("extracts tool call counts from byName", () => {
     const output: GeminiOutput = {
+      sessionId: null,
       response: "hi",
-      stats: { models: {} },
+      stats: {
+        tools: {
+          byName: {
+            list_directory: { count: 2 },
+            web_fetch: { count: 1 },
+          },
+        },
+      },
     };
-    const result = extractStructuredOutput(output);
-    assert.deepEqual(result.models, []);
-    assert.equal(result.totalTokens, null);
+    assert.deepEqual(extractStructuredOutput(output).tools, {
+      list_directory: 2,
+      web_fetch: 1,
+    });
+  });
+
+  it("returns empty tools when no tool calls", () => {
+    const output: GeminiOutput = {
+      sessionId: null,
+      response: "hi",
+      stats: { tools: { totalCalls: 0, byName: {} } },
+    };
+    assert.deepEqual(extractStructuredOutput(output).tools, {});
   });
 });

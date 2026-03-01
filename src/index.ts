@@ -32,22 +32,16 @@ export function buildGeminiArgs(
   ];
 }
 
-export interface GeminiStats {
-  models?: Record<string, unknown>;
-  tools?: Record<string, unknown>;
-  files?: Record<string, unknown>;
-  [key: string]: unknown;
-}
-
 export interface GeminiOutput {
+  sessionId: string | null;
   response: string;
-  stats?: GeminiStats;
+  stats?: Record<string, unknown>;
 }
 
 export function parseGeminiOutput(stdout: string): GeminiOutput {
   const trimmed = stdout.trim();
   if (!trimmed) {
-    return { response: "" };
+    return { sessionId: null, response: "" };
   }
 
   try {
@@ -60,43 +54,57 @@ export function parseGeminiOutput(stdout: string): GeminiOutput {
     ) {
       const obj = parsed as Record<string, unknown>;
       return {
+        sessionId: typeof obj.session_id === "string" ? obj.session_id : null,
         response: obj.response as string,
-        stats:
-          obj.stats !== undefined ? (obj.stats as GeminiStats) : undefined,
+        stats: typeof obj.stats === "object" && obj.stats !== null
+          ? (obj.stats as Record<string, unknown>)
+          : undefined,
       };
     }
-    // JSON but unexpected shape — return raw
-    return { response: trimmed };
+    return { sessionId: null, response: trimmed };
   } catch {
-    // Not JSON — return raw stdout
-    return { response: trimmed };
+    return { sessionId: null, response: trimmed };
   }
 }
 
 export interface StructuredOutput {
+  sessionId: string | null;
   response: string;
-  models: string[];
-  totalTokens: number | null;
+  models: Record<string, number>;  // model name → total tokens
+  tools: Record<string, number>;   // tool name → call count
 }
 
 export function extractStructuredOutput(output: GeminiOutput): StructuredOutput {
-  const models: string[] = [];
-  let totalTokens: number | null = null;
+  const models: Record<string, number> = {};
+  const tools: Record<string, number> = {};
 
-  if (output.stats?.models && typeof output.stats.models === "object") {
-    const rawModels = output.stats.models as Record<string, unknown>;
-    models.push(...Object.keys(rawModels));
-    for (const modelStats of Object.values(rawModels)) {
-      if (modelStats && typeof modelStats === "object") {
-        const ms = modelStats as Record<string, unknown>;
-        if (typeof ms.totalTokenCount === "number") {
-          totalTokens = (totalTokens ?? 0) + ms.totalTokenCount;
+  const stats = output.stats;
+  if (stats) {
+    if (stats.models && typeof stats.models === "object") {
+      for (const [name, modelStats] of Object.entries(stats.models as Record<string, unknown>)) {
+        if (modelStats && typeof modelStats === "object") {
+          const t = (modelStats as Record<string, unknown>).tokens;
+          if (t && typeof t === "object" && typeof (t as Record<string, unknown>).total === "number") {
+            models[name] = (t as Record<string, number>).total;
+          }
+        }
+      }
+    }
+
+    if (stats.tools && typeof stats.tools === "object") {
+      const byName = (stats.tools as Record<string, unknown>).byName;
+      if (byName && typeof byName === "object") {
+        for (const [name, toolStats] of Object.entries(byName as Record<string, unknown>)) {
+          if (toolStats && typeof toolStats === "object") {
+            const count = (toolStats as Record<string, unknown>).count;
+            if (typeof count === "number") tools[name] = count;
+          }
         }
       }
     }
   }
 
-  return { response: output.response, models, totalTokens };
+  return { sessionId: output.sessionId, response: output.response, models, tools };
 }
 
 export interface RunGeminiResult {
@@ -113,7 +121,7 @@ export function runGemini(
 ): Promise<RunGeminiResult> {
   if (!existsSync(cwd)) {
     return Promise.resolve({
-      output: { response: "" },
+      output: { sessionId: null, response: "" },
       isError: true,
       errorMessage: `Working directory does not exist: ${cwd}`,
     });
@@ -127,7 +135,7 @@ export function runGemini(
       child = spawn("gemini", args, { cwd, env: process.env });
     } catch (err) {
       resolve({
-        output: { response: "" },
+        output: { sessionId: null, response: "" },
         isError: true,
         errorMessage: `Failed to spawn gemini: ${String(err)}. Is gemini-cli installed? Try: npm install -g @google/gemini-cli`,
       });
@@ -164,7 +172,7 @@ export function runGemini(
         (err as NodeJS.ErrnoException).code === "ENOENT" ||
         err.message.includes("ENOENT");
       resolve({
-        output: { response: "" },
+        output: { sessionId: null, response: "" },
         isError: true,
         errorMessage: isNotFound
           ? `gemini binary not found. Install with: npm install -g @google/gemini-cli`
@@ -177,7 +185,7 @@ export function runGemini(
 
       if (timedOut) {
         resolve({
-          output: { response: "" },
+          output: { sessionId: null, response: "" },
           isError: true,
           errorMessage: `gemini timed out after ${timeoutMs / 1000}s`,
         });
@@ -187,7 +195,7 @@ export function runGemini(
       if (code !== 0) {
         const detail = stderr.trim() || stdout.trim() || `exit code ${code}`;
         resolve({
-          output: { response: "" },
+          output: { sessionId: null, response: "" },
           isError: true,
           errorMessage: `gemini exited with code ${code}: ${detail}`,
         });
@@ -234,12 +242,10 @@ server.registerTool(
         ),
     },
     outputSchema: {
+      sessionId: z.string().nullable().describe("Gemini CLI session ID"),
       response: z.string().describe("Gemini's text response"),
-      models: z.array(z.string()).describe("Model(s) used during the task"),
-      totalTokens: z
-        .number()
-        .nullable()
-        .describe("Total token count across all models, if reported"),
+      models: z.record(z.string(), z.number()).describe("Model name → total tokens used"),
+      tools: z.record(z.string(), z.number()).describe("Tool name → call count"),
     },
     annotations: {
       readOnlyHint: false,

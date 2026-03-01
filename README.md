@@ -31,11 +31,19 @@ npm run build
 
 ## Configuration
 
+If installed via npm:
+
+```sh
+claude mcp add gemini npx @danwahl/gemini-cli-mcp
+```
+
+Or from source:
+
 ```sh
 claude mcp add gemini node /absolute/path/to/gemini-cli-mcp/cli.js
 ```
 
-This adds the server to your Claude Code config. You can verify with `claude mcp list`.
+Verify with `claude mcp list`.
 
 ## Tool: `cli`
 

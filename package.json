@@ -1,5 +1,5 @@
 {
-  "name": "gemini-cli-mcp",
+  "name": "@danwahl/gemini-cli-mcp",
   "type": "module",
   "version": "0.1.0",
   "description": "MCP server that exposes Gemini CLI as a single tool for Claude Code",

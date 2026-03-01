@@ -73,29 +73,30 @@ export function parseGeminiOutput(stdout: string): GeminiOutput {
   }
 }
 
-export function formatStatsLine(stats: GeminiStats | undefined): string {
-  if (!stats) return "";
+export interface StructuredOutput {
+  response: string;
+  models: string[];
+  totalTokens: number | null;
+}
 
-  const parts: string[] = [];
+export function extractStructuredOutput(output: GeminiOutput): StructuredOutput {
+  const models: string[] = [];
+  let totalTokens: number | null = null;
 
-  if (stats.models && typeof stats.models === "object") {
-    const models = stats.models as Record<string, unknown>;
-    const modelNames = Object.keys(models);
-    if (modelNames.length > 0) {
-      parts.push(`models: ${modelNames.join(", ")}`);
-    }
-    // Extract token counts if available
-    for (const [, modelStats] of Object.entries(models)) {
+  if (output.stats?.models && typeof output.stats.models === "object") {
+    const rawModels = output.stats.models as Record<string, unknown>;
+    models.push(...Object.keys(rawModels));
+    for (const modelStats of Object.values(rawModels)) {
       if (modelStats && typeof modelStats === "object") {
         const ms = modelStats as Record<string, unknown>;
         if (typeof ms.totalTokenCount === "number") {
-          parts.push(`tokens: ${ms.totalTokenCount}`);
+          totalTokens = (totalTokens ?? 0) + ms.totalTokenCount;
         }
       }
     }
   }
 
-  return parts.length > 0 ? `[${parts.join(" | ")}]` : "";
+  return { response: output.response, models, totalTokens };
 }
 
 export interface RunGeminiResult {
@@ -232,6 +233,14 @@ server.registerTool(
             "Or pass a concrete model name like \"gemini-2.5-pro\"."
         ),
     },
+    outputSchema: {
+      response: z.string().describe("Gemini's text response"),
+      models: z.array(z.string()).describe("Model(s) used during the task"),
+      totalTokens: z
+        .number()
+        .nullable()
+        .describe("Total token count across all models, if reported"),
+    },
     annotations: {
       readOnlyHint: false,
       openWorldHint: true,
@@ -244,25 +253,15 @@ server.registerTool(
     if (result.isError) {
       return {
         isError: true,
-        content: [
-          {
-            type: "text",
-            text: result.errorMessage ?? "Unknown error",
-          },
-        ],
+        content: [{ type: "text", text: result.errorMessage ?? "Unknown error" }],
       };
     }
 
-    const statsLine = formatStatsLine(result.output.stats);
-    const content: Array<{ type: "text"; text: string }> = [
-      { type: "text", text: result.output.response },
-    ];
-
-    if (statsLine) {
-      content.push({ type: "text", text: statsLine });
-    }
-
-    return { content };
+    const structured = extractStructuredOutput(result.output);
+    return {
+      content: [{ type: "text", text: structured.response }],
+      structuredContent: structured as unknown as Record<string, unknown>,
+    };
   }
 );
 

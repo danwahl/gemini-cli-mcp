@@ -4,8 +4,8 @@ import {
   buildGeminiArgs,
   resolveModel,
   parseGeminiOutput,
-  formatStatsLine,
-  type GeminiStats,
+  extractStructuredOutput,
+  type GeminiOutput,
 } from "./index.ts";
 
 describe("resolveModel", () => {
@@ -120,36 +120,58 @@ describe("parseGeminiOutput", () => {
   });
 });
 
-describe("formatStatsLine", () => {
-  it("returns empty string for undefined stats", () => {
-    assert.equal(formatStatsLine(undefined), "");
+describe("extractStructuredOutput", () => {
+  it("returns response text", () => {
+    const output: GeminiOutput = { response: "hello" };
+    assert.equal(extractStructuredOutput(output).response, "hello");
   });
 
-  it("returns empty string for empty stats object", () => {
-    assert.equal(formatStatsLine({} as GeminiStats), "");
+  it("returns empty models array when no stats", () => {
+    const output: GeminiOutput = { response: "hi" };
+    assert.deepEqual(extractStructuredOutput(output).models, []);
   });
 
-  it("includes model name when present", () => {
-    const stats: GeminiStats = {
-      models: { "gemini-2.5-pro": {} },
+  it("returns null totalTokens when no stats", () => {
+    const output: GeminiOutput = { response: "hi" };
+    assert.equal(extractStructuredOutput(output).totalTokens, null);
+  });
+
+  it("extracts model names from stats", () => {
+    const output: GeminiOutput = {
+      response: "hi",
+      stats: { models: { "gemini-2.5-pro": {} } },
     };
-    const line = formatStatsLine(stats);
-    assert.ok(line.includes("gemini-2.5-pro"), `expected model in: ${line}`);
+    assert.deepEqual(extractStructuredOutput(output).models, ["gemini-2.5-pro"]);
   });
 
-  it("includes token count when present", () => {
-    const stats: GeminiStats = {
-      models: { "gemini-2.5-pro": { totalTokenCount: 123 } },
+  it("sums totalTokenCount across models", () => {
+    const output: GeminiOutput = {
+      response: "hi",
+      stats: {
+        models: {
+          "gemini-2.5-pro": { totalTokenCount: 100 },
+          "gemini-2.0-flash": { totalTokenCount: 50 },
+        },
+      },
     };
-    const line = formatStatsLine(stats);
-    assert.ok(line.includes("123"), `expected token count in: ${line}`);
+    assert.equal(extractStructuredOutput(output).totalTokens, 150);
   });
 
-  it("wraps output in brackets", () => {
-    const stats: GeminiStats = {
-      models: { "gemini-2.5-pro": { totalTokenCount: 1 } },
+  it("returns null totalTokens when models have no token counts", () => {
+    const output: GeminiOutput = {
+      response: "hi",
+      stats: { models: { "gemini-2.5-pro": {} } },
     };
-    const line = formatStatsLine(stats);
-    assert.ok(line.startsWith("[") && line.endsWith("]"));
+    assert.equal(extractStructuredOutput(output).totalTokens, null);
+  });
+
+  it("handles empty stats.models object", () => {
+    const output: GeminiOutput = {
+      response: "hi",
+      stats: { models: {} },
+    };
+    const result = extractStructuredOutput(output);
+    assert.deepEqual(result.models, []);
+    assert.equal(result.totalTokens, null);
   });
 });

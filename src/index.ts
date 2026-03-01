@@ -1,5 +1,4 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { z } from "zod";
@@ -266,14 +265,4 @@ server.registerTool(
   }
 );
 
-// Only connect when run directly (not imported by tests)
-const isMain =
-  process.argv[1] !== undefined &&
-  (import.meta.url === `file://${process.argv[1]}` ||
-    process.argv[1].endsWith("cli.js") ||
-    process.argv[1].endsWith("dist/index.js"));
-
-if (isMain) {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-}
+export { server };

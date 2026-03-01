@@ -207,7 +207,7 @@ const server = new McpServer({
 });
 
 server.registerTool(
-  "gemini_task",
+  "cli",
   {
     description:
       "Send a task or question to Gemini CLI and return the response. " +

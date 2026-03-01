@@ -31,20 +31,13 @@ npm run build
 
 ## Configuration
 
-Add to `~/.claude/settings.json`:
-
-```json
-{
-  "mcpServers": {
-    "gemini": {
-      "command": "node",
-      "args": ["/absolute/path/to/gemini-cli-mcp/cli.js"]
-    }
-  }
-}
+```sh
+claude mcp add gemini node /absolute/path/to/gemini-cli-mcp/cli.js
 ```
 
-## Tool: `gemini_task`
+This adds the server to your Claude Code config. You can verify with `claude mcp list`.
+
+## Tool: `cli`
 
 | Parameter | Type   | Required | Description |
 |-----------|--------|----------|-------------|

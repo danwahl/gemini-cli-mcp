@@ -3,7 +3,7 @@
 Minimal MCP server that wraps Gemini CLI as a single tool for use from Claude Code.
 
 ## Key decisions
-- One tool (`gemini_task`), no prompt wrappers
+- One tool (`cli`), no prompt wrappers
 - Uses `--output-format json` (not stream-json) since we return final results
 - Uses `--approval-mode yolo` for headless operation (auto-enables sandbox)
 - MCP SDK v1.x (v2 is pre-alpha, not production ready)

@@ -16,11 +16,11 @@ This project is intentionally minimal. Before adding any code, ask:
 - Is this a real problem or a hypothetical one?
 
 Do not add features speculatively. Do not add abstraction layers for a single tool.
-The entire server should remain a single file under 200 lines.
+The server code lives in `src/index.ts` (entry point) and `src/lib.ts` (pure functions). Keep both small and focused.
 
 ## Build & test
-- `npm run build` to compile with tsdown
-- Test manually: `echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | node cli.js`
+- `npm run build` to compile with tsc
+- Test manually: `echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | node dist/index.js`
 
 ## Git practices
 - Initialize the repo with `git init` before writing any code
@@ -39,7 +39,7 @@ Before every commit, run:
 - Do NOT mock the MCP SDK
 - Do NOT unit test the spawn itself
 - Use Node's built-in test runner (`node --test`)
-- Test file: `src/index.test.ts`
+- Test file: `src/lib.test.ts`
 
 ## Code style
 - No linter config needed — just be consistent

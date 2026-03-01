@@ -16,9 +16,20 @@ server.registerTool(
   "cli",
   {
     description:
-      "Send a task or question to Gemini CLI and return the response. " +
-      "Gemini runs headlessly with full tool access (file read/write, web search, shell commands). " +
-      "Use this to delegate tasks that benefit from Gemini's capabilities or to get a second opinion.",
+      "Send a task to Gemini CLI and return the response. " +
+      "Gemini runs headlessly with full tool access (file read/write, web search, shell commands) " +
+      "and operates in the working directory you specify via `cwd`.\n\n" +
+      "When to use this tool:\n" +
+      "- Delegating rote coding tasks: boilerplate generation, repetitive refactors, bulk edits across many files\n" +
+      "- Getting a second opinion: code review, architecture feedback, sanity-checking an approach\n" +
+      "- Research and brainstorming: Gemini has web search and a large context window, useful for exploring options or summarizing docs\n" +
+      "- Large file analysis: processing files that would be expensive to handle directly\n" +
+      "- Parallel workstreams: offloading independent subtasks while you continue other work\n\n" +
+      "Session resumption: each response includes a `sessionId`. " +
+      "Pass it back via the `sessionId` parameter to continue a conversation " +
+      "without re-sending context — useful for multi-step tasks or follow-up questions.\n\n" +
+      "Keep prompts self-contained: include all necessary context in the `prompt` since " +
+      "Gemini has no access to your conversation history or MCP state.",
     inputSchema: {
       prompt: z
         .string()

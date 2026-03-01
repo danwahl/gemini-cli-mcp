@@ -34,16 +34,16 @@ npm run build
 **User install** (available across all projects):
 
 ```sh
-claude mcp add --scope user gemini npx -- -y @danwahl/gemini-cli-mcp
+claude mcp add gemini-cli -s user -- npx -y @danwahl/gemini-cli-mcp
 ```
 
 **Project install** (shared with your team via `.mcp.json`):
 
 ```sh
-claude mcp add --scope project gemini npx -- -y @danwahl/gemini-cli-mcp
+claude mcp add gemini-cli -s project -- npx -y @danwahl/gemini-cli-mcp
 ```
 
-Or from source, replace `npx @danwahl/gemini-cli-mcp` with `node /absolute/path/to/gemini-cli-mcp/cli.js`.
+Or from source, replace `npx -y @danwahl/gemini-cli-mcp` with `node /absolute/path/to/gemini-cli-mcp/dist/index.js`.
 
 Verify with `claude mcp list`.
 
@@ -96,7 +96,7 @@ Gemini runs with `--approval-mode yolo`, giving it full tool access: read/write 
 ## Development
 
 ```sh
-npm run build   # compile with tsdown
+npm run build   # compile with tsc
 npm test        # run unit tests
 ```
 

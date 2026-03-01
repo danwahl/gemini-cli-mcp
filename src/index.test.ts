@@ -5,7 +5,7 @@ import {
   parseGeminiOutput,
   extractStructuredOutput,
   type GeminiOutput,
-} from "./index.ts";
+} from "./lib.ts";
 
 describe("buildGeminiArgs", () => {
   it("omits --model when not provided", () => {

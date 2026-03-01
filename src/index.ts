@@ -223,7 +223,12 @@ server.registerTool(
       model: z
         .string()
         .optional()
-        .describe("Gemini model to use (e.g. \"gemini-2.5-pro\"). Omit to use Gemini CLI's default routing."),
+        .describe(
+          "Model to use. Omit to use Gemini CLI's default (auto). " +
+          "Official aliases: \"auto\" (default routing), \"pro\" (complex reasoning), " +
+          "\"flash\" (fast, balanced), \"flash-lite\" (fastest). " +
+          "Or pass a concrete model name like \"gemini-2.5-pro\"."
+        ),
       sessionId: z
         .string()
         .optional()

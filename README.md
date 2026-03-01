@@ -43,7 +43,7 @@ This adds the server to your Claude Code config. You can verify with `claude mcp
 |-------------|--------|----------|-------------|
 | `prompt`    | string | yes      | Task or question to send to Gemini |
 | `cwd`       | string | yes      | Absolute path to working directory |
-| `model`     | string | no       | Model name (e.g. `"gemini-2.5-pro"`). Omit to use Gemini CLI's default routing. |
+| `model`     | string | no       | Model name or alias (see below). Omit to use Gemini CLI's default (`auto`). |
 | `sessionId` | string | no       | Resume a previous session. The session ID is returned in the structured output of each call. |
 
 ### Structured output
@@ -65,6 +65,19 @@ Each call returns structured content alongside the text response:
 ```
 
 `models` maps model name → total tokens used. `tools` maps tool name → call count (only present when Gemini used tools).
+
+### Model aliases
+
+These are passed directly to the CLI, which resolves them:
+
+| Alias        | Description |
+|--------------|-------------|
+| `auto`       | Default routing (pro or preview depending on settings) |
+| `pro`        | Complex reasoning tasks |
+| `flash`      | Fast, balanced — good for most tasks |
+| `flash-lite` | Fastest, for simple tasks |
+
+Or pass any concrete model name like `"gemini-2.5-pro"`.
 
 ### What Gemini can do
 

@@ -2,6 +2,14 @@
   "name": "gemini-cli-mcp",
   "type": "module",
   "version": "0.1.0",
+  "description": "MCP server that exposes Gemini CLI as a single tool for Claude Code",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/danwahl/gemini-cli-mcp.git"
+  },
+  "keywords": ["mcp", "gemini", "claude", "llm", "ai"],
+  "engines": { "node": ">=18" },
   "bin": "./cli.js",
   "scripts": {
     "build": "tsdown src/index.ts",

@@ -31,17 +31,19 @@ npm run build
 
 ## Configuration
 
-If installed via npm:
+**User install** (available across all projects):
 
 ```sh
-claude mcp add gemini npx @danwahl/gemini-cli-mcp
+claude mcp add --scope user gemini npx @danwahl/gemini-cli-mcp
 ```
 
-Or from source:
+**Project install** (shared with your team via `.mcp.json`):
 
 ```sh
-claude mcp add gemini node /absolute/path/to/gemini-cli-mcp/cli.js
+claude mcp add --scope project gemini npx @danwahl/gemini-cli-mcp
 ```
+
+Or from source, replace `npx @danwahl/gemini-cli-mcp` with `node /absolute/path/to/gemini-cli-mcp/cli.js`.
 
 Verify with `claude mcp list`.
 

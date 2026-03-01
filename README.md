@@ -103,7 +103,7 @@ npm test        # run unit tests
 ### Smoke test
 
 ```sh
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | node cli.js
+echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | node dist/index.js
 ```
 
 ## Design

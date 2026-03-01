@@ -1,7 +1,7 @@
 {
   "name": "@danwahl/gemini-cli-mcp",
   "type": "module",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "MCP server that exposes Gemini CLI as a single tool for Claude Code",
   "license": "MIT",
   "repository": {
@@ -10,15 +10,14 @@
   },
   "keywords": ["mcp", "gemini", "claude", "llm", "ai"],
   "engines": { "node": ">=18" },
-  "bin": { "gemini-cli-mcp": "./cli.js" },
+  "bin": { "gemini-cli-mcp": "dist/index.js" },
   "scripts": {
-    "build": "tsdown src/index.ts",
-    "test": "node --import tsx/esm --test src/index.test.ts",
+    "build": "tsc && shx chmod +x dist/*.js",
+    "test": "node --import tsx/esm --test src/lib.test.ts",
     "prepublishOnly": "npm run build"
   },
   "files": [
-    "dist",
-    "cli.js"
+    "dist"
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.21.0",
@@ -26,7 +25,7 @@
   },
   "devDependencies": {
     "@types/node": "^25.3.3",
-    "tsdown": "^0.10.0",
+    "shx": "^0.3.4",
     "tsx": "^4.21.0",
     "typescript": "^5.8.0"
   }

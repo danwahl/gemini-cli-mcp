@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { createRequire } from "node:module";
@@ -74,5 +75,12 @@ server.registerTool(
   }
 );
 
-const transport = new StdioServerTransport();
-await server.connect(transport);
+async function runServer() {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+}
+
+runServer().catch((error) => {
+  console.error("Fatal error:", error);
+  process.exit(1);
+});

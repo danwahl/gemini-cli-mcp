@@ -39,22 +39,32 @@ This adds the server to your Claude Code config. You can verify with `claude mcp
 
 ## Tool: `cli`
 
-| Parameter | Type   | Required | Description |
-|-----------|--------|----------|-------------|
-| `prompt`  | string | yes      | Task or question to send to Gemini |
-| `cwd`     | string | yes      | Absolute path to working directory |
-| `model`   | string | no       | Model alias or concrete name (default: `"auto"`) |
+| Parameter   | Type   | Required | Description |
+|-------------|--------|----------|-------------|
+| `prompt`    | string | yes      | Task or question to send to Gemini |
+| `cwd`       | string | yes      | Absolute path to working directory |
+| `model`     | string | no       | Model name (e.g. `"gemini-2.5-pro"`). Omit to use Gemini CLI's default routing. |
+| `sessionId` | string | no       | Resume a previous session. The session ID is returned in the structured output of each call. |
 
-### Model aliases
+### Structured output
 
-| Alias        | Resolves to              |
-|--------------|--------------------------|
-| `auto`       | `gemini-2.5-pro`         |
-| `pro`        | `gemini-2.5-pro`         |
-| `flash`      | `gemini-2.0-flash`       |
-| `flash-lite` | `gemini-2.0-flash-lite`  |
+Each call returns structured content alongside the text response:
 
-You can also pass a concrete model name like `"gemini-2.5-flash-preview-05-20"`.
+```json
+{
+  "sessionId": "e80096bd-...",
+  "response": "Gemini's answer...",
+  "models": {
+    "gemini-2.5-flash-lite": 1399,
+    "gemini-3-flash-preview": 18635
+  },
+  "tools": {
+    "list_directory": 2
+  }
+}
+```
+
+`models` maps model name → total tokens used. `tools` maps tool name → call count (only present when Gemini used tools).
 
 ### What Gemini can do
 

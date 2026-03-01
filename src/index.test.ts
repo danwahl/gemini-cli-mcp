@@ -2,81 +2,50 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   buildGeminiArgs,
-  resolveModel,
   parseGeminiOutput,
   extractStructuredOutput,
   type GeminiOutput,
 } from "./index.ts";
 
-describe("resolveModel", () => {
-  it("resolves 'auto' alias", () => {
-    assert.equal(resolveModel("auto"), "gemini-2.5-pro");
-  });
-
-  it("resolves 'pro' alias", () => {
-    assert.equal(resolveModel("pro"), "gemini-2.5-pro");
-  });
-
-  it("resolves 'flash' alias", () => {
-    assert.equal(resolveModel("flash"), "gemini-2.0-flash");
-  });
-
-  it("resolves 'flash-lite' alias", () => {
-    assert.equal(resolveModel("flash-lite"), "gemini-2.0-flash-lite");
-  });
-
-  it("passes through concrete model names unchanged", () => {
-    assert.equal(resolveModel("gemini-2.5-pro"), "gemini-2.5-pro");
-    assert.equal(resolveModel("gemini-1.5-pro-001"), "gemini-1.5-pro-001");
-  });
-});
-
 describe("buildGeminiArgs", () => {
-  it("builds args with default model", () => {
-    const args = buildGeminiArgs("hello", "auto");
-    assert.deepEqual(args, [
-      "-p",
-      "hello",
-      "--model",
-      "gemini-2.5-pro",
-      "--output-format",
-      "json",
-      "--approval-mode",
-      "yolo",
-    ]);
+  it("omits --model when not provided", () => {
+    const args = buildGeminiArgs("hello", undefined);
+    assert.ok(!args.includes("--model"));
   });
 
-  it("builds args with flash model", () => {
-    const args = buildGeminiArgs("hello", "flash");
-    assert.equal(args[3], "gemini-2.0-flash");
+  it("includes --model when provided", () => {
+    const args = buildGeminiArgs("hello", "gemini-2.5-pro");
+    const idx = args.indexOf("--model");
+    assert.ok(idx !== -1);
+    assert.equal(args[idx + 1], "gemini-2.5-pro");
   });
 
-  it("builds args with explicit model name", () => {
-    const args = buildGeminiArgs("test prompt", "gemini-1.5-flash");
-    assert.equal(args[3], "gemini-1.5-flash");
+  it("passes model string through unchanged", () => {
+    const args = buildGeminiArgs("hello", "gemini-1.5-flash-001");
+    assert.equal(args[args.indexOf("--model") + 1], "gemini-1.5-flash-001");
   });
 
   it("includes --resume when sessionId provided", () => {
-    const args = buildGeminiArgs("x", "auto", "my-session-id");
+    const args = buildGeminiArgs("x", undefined, "my-session-id");
     const idx = args.indexOf("--resume");
     assert.ok(idx !== -1);
     assert.equal(args[idx + 1], "my-session-id");
   });
 
   it("omits --resume when sessionId not provided", () => {
-    const args = buildGeminiArgs("x", "auto");
+    const args = buildGeminiArgs("x", undefined);
     assert.ok(!args.includes("--resume"));
   });
 
   it("includes --approval-mode yolo", () => {
-    const args = buildGeminiArgs("x", "auto");
+    const args = buildGeminiArgs("x", undefined);
     const idx = args.indexOf("--approval-mode");
     assert.ok(idx !== -1);
     assert.equal(args[idx + 1], "yolo");
   });
 
   it("includes --output-format json", () => {
-    const args = buildGeminiArgs("x", "auto");
+    const args = buildGeminiArgs("x", undefined);
     const idx = args.indexOf("--output-format");
     assert.ok(idx !== -1);
     assert.equal(args[idx + 1], "json");

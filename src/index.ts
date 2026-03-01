@@ -4,33 +4,16 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { z } from "zod";
 
-const MODEL_ALIASES: Record<string, string> = {
-  auto: "gemini-2.5-pro",
-  pro: "gemini-2.5-pro",
-  flash: "gemini-2.0-flash",
-  "flash-lite": "gemini-2.0-flash-lite",
-};
-
-export function resolveModel(model: string): string {
-  return MODEL_ALIASES[model] ?? model;
-}
-
 export function buildGeminiArgs(
   prompt: string,
-  model: string,
+  model: string | undefined,
   sessionId?: string,
   outputFormat: string = "json"
 ): string[] {
-  const args = [
-    "-p",
-    prompt,
-    "--model",
-    resolveModel(model),
-    "--output-format",
-    outputFormat,
-    "--approval-mode",
-    "yolo",
-  ];
+  const args = ["-p", prompt, "--output-format", outputFormat, "--approval-mode", "yolo"];
+  if (model) {
+    args.push("--model", model);
+  }
   if (sessionId) {
     args.push("--resume", sessionId);
   }
@@ -121,7 +104,7 @@ export interface RunGeminiResult {
 export function runGemini(
   prompt: string,
   cwd: string,
-  model: string,
+  model: string | undefined,
   timeoutMs: number,
   sessionId?: string
 ): Promise<RunGeminiResult> {
@@ -240,12 +223,7 @@ server.registerTool(
       model: z
         .string()
         .optional()
-        .default("auto")
-        .describe(
-          'Model to use. Aliases: "auto" (default, smart routing), "pro" (gemini-2.5-pro), ' +
-            '"flash" (gemini-2.0-flash), "flash-lite" (gemini-2.0-flash-lite). ' +
-            "Or pass a concrete model name like \"gemini-2.5-pro\"."
-        ),
+        .describe("Gemini model to use (e.g. \"gemini-2.5-pro\"). Omit to use Gemini CLI's default routing."),
       sessionId: z
         .string()
         .optional()
@@ -266,7 +244,7 @@ server.registerTool(
   },
   async ({ prompt, cwd, model, sessionId }) => {
     const timeoutMs = 120_000;
-    const result = await runGemini(prompt, cwd, model ?? "auto", timeoutMs, sessionId);
+    const result = await runGemini(prompt, cwd, model, timeoutMs, sessionId);
 
     if (result.isError) {
       return {

@@ -18,9 +18,10 @@ export function resolveModel(model: string): string {
 export function buildGeminiArgs(
   prompt: string,
   model: string,
+  sessionId?: string,
   outputFormat: string = "json"
 ): string[] {
-  return [
+  const args = [
     "-p",
     prompt,
     "--model",
@@ -30,6 +31,10 @@ export function buildGeminiArgs(
     "--approval-mode",
     "yolo",
   ];
+  if (sessionId) {
+    args.push("--resume", sessionId);
+  }
+  return args;
 }
 
 export interface GeminiOutput {
@@ -117,7 +122,8 @@ export function runGemini(
   prompt: string,
   cwd: string,
   model: string,
-  timeoutMs: number
+  timeoutMs: number,
+  sessionId?: string
 ): Promise<RunGeminiResult> {
   if (!existsSync(cwd)) {
     return Promise.resolve({
@@ -128,7 +134,7 @@ export function runGemini(
   }
 
   return new Promise((resolve) => {
-    const args = buildGeminiArgs(prompt, model);
+    const args = buildGeminiArgs(prompt, model, sessionId);
     let child: ReturnType<typeof spawn>;
 
     try {
@@ -240,6 +246,12 @@ server.registerTool(
             '"flash" (gemini-2.0-flash), "flash-lite" (gemini-2.0-flash-lite). ' +
             "Or pass a concrete model name like \"gemini-2.5-pro\"."
         ),
+      sessionId: z
+        .string()
+        .optional()
+        .describe(
+          "Resume a previous Gemini session by ID. The session ID is returned in the structured output of each call."
+        ),
     },
     outputSchema: {
       sessionId: z.string().nullable().describe("Gemini CLI session ID"),
@@ -252,9 +264,9 @@ server.registerTool(
       openWorldHint: true,
     },
   },
-  async ({ prompt, cwd, model }) => {
+  async ({ prompt, cwd, model, sessionId }) => {
     const timeoutMs = 120_000;
-    const result = await runGemini(prompt, cwd, model ?? "auto", timeoutMs);
+    const result = await runGemini(prompt, cwd, model ?? "auto", timeoutMs, sessionId);
 
     if (result.isError) {
       return {

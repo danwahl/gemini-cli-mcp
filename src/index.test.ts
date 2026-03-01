@@ -56,6 +56,18 @@ describe("buildGeminiArgs", () => {
     assert.equal(args[3], "gemini-1.5-flash");
   });
 
+  it("includes --resume when sessionId provided", () => {
+    const args = buildGeminiArgs("x", "auto", "my-session-id");
+    const idx = args.indexOf("--resume");
+    assert.ok(idx !== -1);
+    assert.equal(args[idx + 1], "my-session-id");
+  });
+
+  it("omits --resume when sessionId not provided", () => {
+    const args = buildGeminiArgs("x", "auto");
+    assert.ok(!args.includes("--resume"));
+  });
+
   it("includes --approval-mode yolo", () => {
     const args = buildGeminiArgs("x", "auto");
     const idx = args.indexOf("--approval-mode");

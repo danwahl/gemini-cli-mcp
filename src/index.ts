@@ -54,6 +54,11 @@ server.registerTool(
         .describe(
           "Resume a previous Gemini session by ID. The session ID is returned in the structured output of each call."
         ),
+      timeout: z
+        .number()
+        .optional()
+        .default(120)
+        .describe("Timeout in seconds. Default: 120. Increase for complex multi-step tasks."),
     },
     outputSchema: {
       sessionId: z.string().nullable().describe("Gemini CLI session ID"),
@@ -66,8 +71,8 @@ server.registerTool(
       openWorldHint: true,
     },
   },
-  async ({ prompt, cwd, model, sessionId }) => {
-    const timeoutMs = 120_000;
+  async ({ prompt, cwd, model, sessionId, timeout }) => {
+    const timeoutMs = (timeout ?? 120) * 1000;
     const result = await runGemini(prompt, cwd, model, timeoutMs, sessionId);
 
     if (result.isError) {

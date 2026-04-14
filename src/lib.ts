@@ -118,7 +118,7 @@ export function runGemini(
     let child: ReturnType<typeof spawn>;
 
     try {
-      child = spawn("gemini", args, { cwd, env: process.env });
+      child = spawn("gemini", args, { cwd, env: process.env, detached: true });
     } catch (err) {
       resolve({
         output: { sessionId: null, response: "" },
@@ -130,18 +130,36 @@ export function runGemini(
 
     let stdout = "";
     let stderr = "";
-    let timedOut = false;
+    let settled = false;
+
+    // Kill the entire process group (gemini + sandbox/tool grandchildren).
+    // Without this, grandchildren can keep stdio pipes open and `close` never fires.
+    const killGroup = (sig: NodeJS.Signals) => {
+      if (child.pid === undefined) return;
+      try {
+        process.kill(-child.pid, sig);
+      } catch {
+        // group already gone
+      }
+    };
+
+    const finish = (r: RunGeminiResult) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(r);
+    };
 
     const timer = setTimeout(() => {
-      timedOut = true;
-      child.kill("SIGTERM");
-      setTimeout(() => {
-        try {
-          child.kill("SIGKILL");
-        } catch {
-          // already dead
-        }
-      }, 5000);
+      killGroup("SIGTERM");
+      setTimeout(() => killGroup("SIGKILL"), 5000).unref();
+      // Resolve immediately — don't wait for `close`, which may never fire
+      // if grandchildren keep stdio pipes open.
+      finish({
+        output: { sessionId: null, response: "" },
+        isError: true,
+        errorMessage: `gemini timed out after ${timeoutMs / 1000}s`,
+      });
     }, timeoutMs);
 
     child.stdout?.on("data", (chunk: Buffer) => {
@@ -153,11 +171,10 @@ export function runGemini(
     });
 
     child.on("error", (err) => {
-      clearTimeout(timer);
       const isNotFound =
         (err as NodeJS.ErrnoException).code === "ENOENT" ||
         err.message.includes("ENOENT");
-      resolve({
+      finish({
         output: { sessionId: null, response: "" },
         isError: true,
         errorMessage: isNotFound
@@ -167,20 +184,9 @@ export function runGemini(
     });
 
     child.on("close", (code) => {
-      clearTimeout(timer);
-
-      if (timedOut) {
-        resolve({
-          output: { sessionId: null, response: "" },
-          isError: true,
-          errorMessage: `gemini timed out after ${timeoutMs / 1000}s`,
-        });
-        return;
-      }
-
       if (code !== 0) {
         const detail = stderr.trim() || stdout.trim() || `exit code ${code}`;
-        resolve({
+        finish({
           output: { sessionId: null, response: "" },
           isError: true,
           errorMessage: `gemini exited with code ${code}: ${detail}`,
@@ -188,7 +194,7 @@ export function runGemini(
         return;
       }
 
-      resolve({
+      finish({
         output: parseGeminiOutput(stdout),
         isError: false,
       });
